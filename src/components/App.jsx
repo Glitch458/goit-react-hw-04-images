@@ -32,8 +32,12 @@ const App = () => {
       });
   }, [searchName, pageNumber]);
 
-  const handleFormSubmit = searchName => {
-    setSearchName(searchName);
+  const handleFormSubmit = newSearchName => {
+    if (searchName !== newSearchName) {
+      setPageNumber(1);
+      setGallery([]);
+    }
+    setSearchName(newSearchName);
   };
 
   const handleClick = (url, alt) => {
