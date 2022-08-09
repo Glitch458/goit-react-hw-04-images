@@ -23,7 +23,7 @@ const App = () => {
     setLoaderStatus(true);
     API(searchName, pageNumber)
       .then(collection => {
-        setGallery([...gallery, ...collection.hits]);
+        setGallery(gallery => [...gallery, ...collection.hits]);
         setTotal(collection.total);
       })
       .finally(() => {
