@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import ImageGallery from './ImageGallery';
 import SearchBar from './Searchbar';
 import Modal from './Modal';
@@ -6,97 +6,64 @@ import Button from './Button';
 import { API } from 'services/galleryAPI';
 import Loader from './Loader';
 
-class App extends Component {
-  state = {
-    searchName: '',
-    largeImg: { url: '', alt: '' },
-    gallery: [],
-    modalIsOpen: false,
-    pageNumber: 1,
-    status: 'idle',
-    buttonIsShown: false,
-    itemQuantity: 12,
-    total: null,
-  };
+const App = () => {
+  const [gallery, setGallery] = useState([]);
+  const [searchName, setSearchName] = useState('');
+  const [pageNumber, setPageNumber] = useState(1);
+  const [largeImg, setLargeImg] = useState({ url: '', alt: '' });
+  const [total, setTotal] = useState(null);
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [status, setStatus] = useState(false);
+  const [loaderStatus, setLoaderStatus] = useState(false);
 
-  componentDidUpdate(prevProps, prevState) {
-    const { searchName, pageNumber, itemQuantity } = this.state;
-
-    if (prevState.searchName !== searchName) {
-      this.setState({ status: 'pending' });
-      API(searchName, pageNumber, itemQuantity)
-        .then(collection => {
-          this.setState({ gallery: collection.hits, total: collection.total });
-          // if (collection.total !== collection.totalHits) {
-          //   this.setState({ buttonIsShown: true });
-          // }
-          // if (this.state.itemQuantity !== collection.hits.length) {
-          //   this.setState({ buttonIsShown: false });
-          // }
-        })
-        .finally(() => {
-          this.setState({ status: 'resolve' });
-        });
+  useEffect(() => {
+    if (!searchName) {
+      return;
     }
+    setLoaderStatus(true);
+    API(searchName, pageNumber)
+      .then(collection => {
+        setGallery([...gallery, ...collection.hits]);
+        setTotal(collection.total);
+      })
+      .finally(() => {
+        setStatus(true);
+        setLoaderStatus(false);
+      });
+  }, [searchName, pageNumber]);
 
-    if (prevState.pageNumber !== pageNumber) {
-      API(searchName, pageNumber).then(newGallery =>
-        this.setState({ gallery: [...prevState.gallery, ...newGallery.hits] })
-      );
-    }
-  }
-
-  handleFormSubmit = searchName => {
-    this.setState({ searchName });
+  const handleFormSubmit = searchName => {
+    setSearchName(searchName);
   };
 
-  handleClick = (url, alt) => {
-    this.setState({
-      largeImg: { url, alt },
-      modalIsOpen: true,
-    });
+  const handleClick = (url, alt) => {
+    setLargeImg({ url, alt });
+    setModalIsOpen(true);
   };
 
-  handleShowButton = value => {
-    this.setState({ buttonIsShown: value });
-  };
-
-  closeModal = e => {
+  const closeModal = e => {
     if (e.target === e.currentTarget || e.code === 'Escape') {
-      this.setState({ modalIsOpen: false });
+      setModalIsOpen(false);
     }
   };
 
-  handleLoadMore = () => {
-    this.setState({ pageNumber: this.state.pageNumber + 1 });
+  const handleLoadMore = () => {
+    setPageNumber(pageNumber + 1);
   };
 
-  // handleChangeStatus = (value) => {
-  //   this.setState({status: value})
-  // }
-
-  render() {
-    const { status, gallery, total, modalIsOpen, largeImg } = this.state;
-    return (
-      <div className="container">
-        <SearchBar onSubmit={this.handleFormSubmit} />
-        {status === 'pending' && <Loader />}
-        {status === 'resolve' && (
-          <ImageGallery gallery={gallery} handleClick={this.handleClick} />
-        )}
-        {gallery.length > 0 && gallery.length <= total && (
-          <Button loadMore={this.handleLoadMore} />
-        )}
-        {modalIsOpen && (
-          <Modal
-            url={largeImg.url}
-            alt={largeImg.alt}
-            closeModal={this.closeModal}
-          />
-        )}
-      </div>
-    );
-  }
-}
+  return (
+    <div className="container">
+      <SearchBar onSubmit={handleFormSubmit} />
+      {status && <ImageGallery gallery={gallery} handleClick={handleClick} />}
+      {loaderStatus && <Loader />}
+      {gallery.length > 0 && gallery.length <= total && (
+        <Button loadMore={handleLoadMore} />
+      )}
+      {modalIsOpen && (
+        <Modal url={largeImg.url} alt={largeImg.alt} closeModal={closeModal} />
+      )}
+    </div>
+  );
+};
 
 export default App;
